@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Star, User, BookOpen } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import StarRating from "@/components/StarRating";
 
 const Browse = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,6 +15,7 @@ const Browse = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -143,7 +146,7 @@ const Browse = () => {
         {/* Books Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {filteredBooks.map(book => (
-            <Card key={book.id} className="overflow-hidden">
+            <Card key={book.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/book/${book.id}`)}>
               <CardHeader>
                 <div className="flex items-start space-x-4">
                   <img 
@@ -157,14 +160,11 @@ const Browse = () => {
                     
                     {/* Rating */}
                     <div className="flex items-center space-x-2 mb-2">
-                      <div className="flex items-center">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star 
-                            key={star} 
-                            className={`h-4 w-4 ${star <= (book.avgRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                          />
-                        ))}
-                      </div>
+                      <StarRating 
+                        rating={book.avgRating || 0}
+                        readonly
+                        size="sm"
+                      />
                       <span className="text-sm text-gray-600">
                         {(book.avgRating || 0).toFixed(1)} ({book.reviewCount || book.reviews?.length || 0} reviews)
                       </span>
@@ -190,20 +190,25 @@ const Browse = () => {
                       <div className="flex items-center space-x-2 mb-1">
                         <User className="h-4 w-4 text-gray-400" />
                         <span className="text-sm font-medium">{review.user?.full_name || review.user}</span>
-                        <div className="flex items-center">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star 
-                              key={star} 
-                              className={`h-3 w-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
+                        <StarRating 
+                          rating={review.rating}
+                          readonly
+                          size="sm"
+                        />
                       </div>
                       <p className="text-sm text-gray-600">{review.review_text || review.text}</p>
                     </div>
                   ))}
                   
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/book/${book.id}`);
+                    }}
+                  >
                     View All Reviews
                   </Button>
                 </div>

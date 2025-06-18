@@ -1,10 +1,9 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image } from 'lucide-react';
-import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary';
+import { uploadToCloudinary } from '@/utils/cloudinary';
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
@@ -13,6 +12,27 @@ interface ImageUploadProps {
   label: string;
   className?: string;
 }
+
+const validateImageFile = (file: File) => {
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      isValid: false,
+      error: 'Please upload a JPEG or PNG image'
+    };
+  }
+
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: 'Image size should be less than 5MB'
+    };
+  }
+
+  return { isValid: true };
+};
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
   onImageUpload,
@@ -43,23 +63,37 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       // Upload to Cloudinary
       const imageUrl = await uploadToCloudinary(file);
-      onImageUpload(imageUrl);
       
-      // Clean up preview URL and update with Cloudinary URL
+      // Clean up preview URL
       URL.revokeObjectURL(previewUrl);
+      
+      // Update preview and notify parent
       setPreview(imageUrl);
+      onImageUpload(imageUrl);
       
       toast.success('Image uploaded successfully!');
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload image. Please try again.');
+      // Clean up preview URL on error
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
       setPreview(currentImage || null);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleRemoveImage = () => {
+    // Clean up preview URL if it's a blob URL
+    if (preview && preview.startsWith('blob:')) {
+      URL.revokeObjectURL(preview);
+    }
     setPreview(null);
     onImageUpload('');
     if (fileInputRef.current) {

@@ -11,11 +11,9 @@ interface AuthContextType {
   getCurrentUser: () => Promise<User | null>;
 }
 
-const API_URL = 'http://localhost:3000';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Move useAuth hook outside of the file to fix Fast Refresh
+// Export the hook separately to fix HMR
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -25,70 +23,101 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Initialize user from localStorage on mount
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  // Function to handle API requests with automatic token refresh
-  const apiRequest = async (url: string, options: RequestInit = {}) => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        credentials: 'include', // This enables sending cookies
-        headers: {
-          ...options.headers,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        // Token expired, try to refresh
-        const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (refreshResponse.ok) {
-          // Retry the original request with new token
-          return fetch(url, {
-            ...options,
-            credentials: 'include',
-            headers: {
-              ...options.headers,
-              'Content-Type': 'application/json',
-            },
-          });
-        } else {
-          // Refresh failed, user needs to login again
-          setUser(null);
-          throw new Error('Session expired. Please login again.');
-        }
-      }
-
-      return response;
-    } catch (error) {
-      console.error('API request error:', error);
-      throw error;
+  // Update localStorage whenever user state changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
     }
+  }, [user]);
+
+  // Helper function for API requests
+  const apiRequest = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
   };
 
   // Get current user from token
-  const getCurrentUser = async (): Promise<User | null> => {
+  const getCurrentUser = async () => {
     try {
-      const response = await apiRequest(`${API_URL}/auth/me`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return null;
       }
 
-      const { user } = await response.json();
-      setUser(user);
-      return user;
+      const response = await apiRequest(`${API_URL}/auth/me`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Try to refresh the token
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            try {
+              const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ refreshToken }),
+              });
+
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                localStorage.setItem('token', refreshData.token);
+                if (refreshData.refreshToken) {
+                  localStorage.setItem('refreshToken', refreshData.refreshToken);
+                }
+                // Retry the getCurrentUser request with new token
+                return getCurrentUser();
+              }
+            } catch (refreshError) {
+              console.error('Token refresh failed:', refreshError);
+            }
+          }
+          // If refresh failed or no refresh token, clear everything
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          setUser(null);
+          return null;
+        }
+        throw new Error(`Failed to fetch user: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.user) {
+        throw new Error('Invalid user data received');
+      }
+
+      // Update user state and persist to localStorage
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      return data.user;
     } catch (error) {
       console.error('Error fetching current user:', error);
-      setUser(null);
       return null;
     }
   };
@@ -98,44 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiRequest(`${API_URL}/auth/register`, {
         method: 'POST',
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      // Auto-login after successful registration
-      const loginResponse = await signIn(email, password);
-      if (loginResponse.error) {
-        return loginResponse;
-      }
-
-      toast.success('Account created successfully!');
-      return {};
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      return { error: errorMessage };
-    }
-  };
-
-  // Sign in an existing user
-  const signIn = async (email: string, password: string) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, firstName, lastName }),
       });
 
       const data = await response.json();
@@ -148,22 +140,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .join(', ');
           throw new Error(errorMessage);
         }
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      if (!data.token) {
+        throw new Error('No authentication token received');
+      }
+
+      // Store tokens in localStorage
+      localStorage.setItem('token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
+
+      // Update user state
+      setUser(data.user);
+
+      toast.success('Account created successfully!');
+      return {};
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.error(errorMessage);
+      return { error: errorMessage };
+    }
+  };
+
+  // Sign in an existing user
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await apiRequest(`${API_URL}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors) {
+          const errorMessage = data.errors
+            .map((err: { field: string; message: string }) => `${err.field}: ${err.message}`)
+            .join(', ');
+          throw new Error(errorMessage);
+        }
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store the token in localStorage
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        // Set the token in the Authorization header for future requests
-        const headers = new Headers();
-        headers.append('Authorization', `Bearer ${data.token}`);
+      if (!data.success) {
+        throw new Error(data.message || 'Login failed');
       }
 
+      // Check for token in the response body
+      if (!data.token) {
+        throw new Error('No authentication token received');
+      }
+
+      if (!data.user) {
+        throw new Error('No user data received');
+      }
+
+      // Store tokens in localStorage
+      localStorage.setItem('token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
+
+      // Update user state
       setUser(data.user);
+
       toast.success('Welcome back!');
       return {};
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.error(errorMessage);
       return { error: errorMessage };
     }
   };
@@ -174,12 +226,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiRequest(`${API_URL}/auth/logout`, {
         method: 'POST',
       });
-      setUser(null);
-      toast.success('Successfully logged out');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if the API call fails, clear the local state
+    } finally {
+      // Clear all auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       setUser(null);
+      toast.success('Successfully logged out');
     }
   };
 
@@ -187,9 +242,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        await getCurrentUser();
+        const token = localStorage.getItem('token');
+        if (token) {
+          // getCurrentUser already handles 401 and token clearing if refresh fails
+          await getCurrentUser();
+        }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        // Only log the error, do not clear localStorage here.
+        // getCurrentUser or signIn/signUp will handle clearing on explicit auth failures (401).
+        console.error('Error during AuthProvider initialization:', error);
       } finally {
         setLoading(false);
       }
@@ -207,9 +268,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getCurrentUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

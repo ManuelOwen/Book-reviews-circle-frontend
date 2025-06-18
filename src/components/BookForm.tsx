@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ImageUpload from './ImageUpload';
 import { toast } from 'sonner';
 
@@ -44,6 +44,31 @@ const BookForm: React.FC<BookFormProps> = ({
     ...initialData
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Static list of genres matching the filter options
+  const genres = [
+    'Psychology',
+    'Mystery',
+    'Self-Help',
+    'Productivity',
+    'Habits',
+    'Fiction',
+    'Romance',
+    'Hollywood',
+    'Thriller',
+    'Science Fiction',
+    'Fantasy',
+    'Biography',
+    'History',
+    'Business',
+    'Finance',
+    'Economics',
+    'Memoir',
+    'Literary Fiction',
+    'Young Adult',
+    'Horror',
+    'Historical Fiction'
+  ];
 
   const handleInputChange = (field: keyof BookFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -118,11 +143,21 @@ const BookForm: React.FC<BookFormProps> = ({
 
             <div>
               <Label htmlFor="genre">Genre</Label>
-              <Input
-                id="genre"
-                value={formData.genre}
-                onChange={(e) => handleInputChange('genre', e.target.value)}
-              />
+              <Select 
+                value={formData.genre} 
+                onValueChange={(value) => handleInputChange('genre', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a genre" />
+                </SelectTrigger>
+                <SelectContent>
+                  {genres.map((genre) => (
+                    <SelectItem key={genre} value={genre}>
+                      {genre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

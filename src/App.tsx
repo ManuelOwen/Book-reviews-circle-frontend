@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Browse from "./pages/Browse";
+import BookDetail from "./pages/BookDetail";
 import Profile from "./pages/Profile";
 import Library from "./pages/Library";
 import Clubs from "./pages/Clubs";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/browse" element={<Browse />} />
+            <Route path="/book/:bookId" element={<BookDetail />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/library" element={<Library />} />
             <Route path="/clubs" element={<Clubs />} />

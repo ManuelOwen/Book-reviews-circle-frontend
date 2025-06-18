@@ -4,6 +4,7 @@ import { BookOpen, Star, User, Search, Sparkles, Heart, TrendingUp } from "lucid
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import StarRating from "@/components/StarRating";
 
 const Home = () => {
   const { user } = useAuth();
@@ -139,9 +140,11 @@ const Home = () => {
                 <h4 className="font-bold text-lg text-gray-900 mb-1">The Silent Patient</h4>
                 <p className="text-sm text-gray-600 mb-3">by Alex Michaelides</p>
                 <div className="flex items-center mb-3">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400 animate-pulse" style={{animationDelay: `${star * 100}ms`}} />
-                  ))}
+                  <StarRating 
+                    rating={5}
+                    readonly
+                    size="sm"
+                  />
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
                   "A psychological thriller that kept me guessing until the very end. Absolutely brilliant!"
@@ -172,10 +175,11 @@ const Home = () => {
                 <h4 className="font-bold text-lg text-gray-900 mb-1">Atomic Habits</h4>
                 <p className="text-sm text-gray-600 mb-3">by James Clear</p>
                 <div className="flex items-center mb-3">
-                  {[1, 2, 3, 4].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400 animate-pulse" style={{animationDelay: `${star * 100}ms`}} />
-                  ))}
-                  <Star className="h-4 w-4 text-gray-300" />
+                  <StarRating 
+                    rating={4}
+                    readonly
+                    size="sm"
+                  />
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
                   "Practical and actionable advice for building better habits. Life-changing!"
@@ -206,9 +210,11 @@ const Home = () => {
                 <h4 className="font-bold text-lg text-gray-900 mb-1">The Seven Husbands of Evelyn Hugo</h4>
                 <p className="text-sm text-gray-600 mb-3">by Taylor Jenkins Reid</p>
                 <div className="flex items-center mb-3">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400 animate-pulse" style={{animationDelay: `${star * 100}ms`}} />
-                  ))}
+                  <StarRating 
+                    rating={5}
+                    readonly
+                    size="sm"
+                  />
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
                   "An absolutely captivating story that I couldn't put down. Brilliant storytelling!"

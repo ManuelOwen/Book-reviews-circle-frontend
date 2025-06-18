@@ -1,4 +1,4 @@
-# 📚 Reading Circle Reviews
+# 📚 Book Club
 
 A modern web application for book lovers to discover, review, and discuss books in reading communities.
 
@@ -13,7 +13,7 @@ A modern web application for book lovers to discover, review, and discuss books 
 - **Personal Library** - Track your reading progress and wishlist
 - **Social Features** - Like and comment on reviews, follow other readers
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
 ### Frontend
 - React 18 with TypeScript
@@ -42,8 +42,8 @@ A modern web application for book lovers to discover, review, and discuss books 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Daniel-kav/reading-circle-reviews.git
-   cd reading-circle-reviews
+   git clone https://github.com/Daniel-kav/book-club.git
+   cd book-club
    ```
 
 2. **Install dependencies**
@@ -64,7 +64,7 @@ A modern web application for book lovers to discover, review, and discuss books 
    - Create `.env` files in both root and backend directories
    - Example backend `.env`:
      ```
-     DATABASE_URL=postgresql://user:password@localhost:5432/reading_circle
+     DATABASE_URL=postgresql://user:password@localhost:5432/book_club
      JWT_SECRET=your_jwt_secret
      NODE_ENV=development
      ```

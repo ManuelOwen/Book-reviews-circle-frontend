@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,6 +29,17 @@ interface PersonalLibraryEntry {
   added_at: string;
 }
 
+interface BookFormData {
+  title: string;
+  author: string;
+  isbn?: string;
+  description?: string;
+  cover_image_url?: string;
+  published_date?: string;
+  genre?: string;
+  page_count?: number;
+}
+
 const Library = () => {
   const { user, loading } = useAuth();
   const [showAddBookDialog, setShowAddBookDialog] = useState(false);
@@ -39,7 +50,7 @@ const Library = () => {
     const fetchLibrary = async () => {
       if (user) {
         try {
-          const response = await api.books.getAll();
+          const response = await api.personalLibrary.getAll();
           setLibraryEntries(response);
         } catch (error) {
           console.error('Error fetching library:', error);
@@ -138,20 +149,22 @@ const Library = () => {
     </Card>
   );
 
-  const handleAddBook = async (bookData: any) => {
+  const handleAddBook = async (bookData: BookFormData) => {
     try {
-      const newBook = await api.books.create(bookData);
-      setLibraryEntries(prev => [...prev, {
-        id: newBook.id,
-        book: newBook,
-        status: 'want_to_read',
-        added_at: new Date().toISOString(),
-      }]);
+      // First create the book
+      const createdBook = await api.books.create(bookData);
+      
+      // Then add it to personal library
+      const newEntry = await api.personalLibrary.create({
+        bookId: createdBook.id,
+        status: 'want_to_read', // Default status when adding a new book
+      });
+      setLibraryEntries(prev => [...prev, newEntry]);
       setShowAddBookDialog(false);
-      toast.success('Book added successfully!');
+      toast.success('Book created and added to your library successfully!');
     } catch (error) {
-      console.error('Error adding book:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to add book');
+      console.error('Error adding book to personal library:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add book to library');
     }
   };
 
@@ -241,13 +254,9 @@ const Library = () => {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     Your library is empty
                   </h3>
-                  <p className="text-gray-500 mb-4">
+                  <p className="text-gray-500">
                     Start building your personal library by adding books you want to read.
                   </p>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Book
-                  </Button>
                 </CardContent>
               </Card>
             ) : (
