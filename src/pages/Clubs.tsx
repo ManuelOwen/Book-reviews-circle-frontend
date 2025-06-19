@@ -33,7 +33,7 @@ const Clubs = () => {
   const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = 'http://localhost:3000';
+  const API_URL = 'https://backend-bookcircle-klee.onrender.com';
 
   useEffect(() => {
     fetchClubs();

@@ -60,7 +60,7 @@ const BookDetail: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/books/${bookId}`, {
+      const response = await fetch(`https://backend-bookcircle-klee.onrender.com/books/${bookId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       
@@ -95,8 +95,8 @@ const BookDetail: React.FC = () => {
       }
 
       const url = isEditing 
-        ? `http://localhost:3000/reviews/${userReview.id}`
-        : 'http://localhost:3000/reviews';
+        ? `https://backend-bookcircle-klee.onrender.com/reviews/${userReview.id}`
+        : 'https://backend-bookcircle-klee.onrender.com/reviews';
       
       const method = isEditing ? 'PATCH' : 'POST';
       const body = isEditing 
@@ -136,7 +136,7 @@ const BookDetail: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/reviews/${userReview.id}`, {
+      const response = await fetch(`https://backend-bookcircle-klee.onrender.com/reviews/${userReview.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

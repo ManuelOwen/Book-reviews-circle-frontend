@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://backend-bookcircle-klee.onrender.com';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');

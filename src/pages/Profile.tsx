@@ -25,12 +25,12 @@ interface ExtendedUser {
 }
 
 const Profile = () => {
-  const { user, token } = useAuth();
+  const { user,token } = useAuth();
   const [userProfile, setUserProfile] = useState<ExtendedUser | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = 'http://localhost:3000';
+  const API_URL = 'https://backend-bookcircle-klee.onrender.com';
 
   useEffect(() => {
     fetchUserProfile();

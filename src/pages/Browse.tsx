@@ -22,7 +22,7 @@ const Browse = () => {
       setLoading(true);
       setError("");
       try {
-        let url = "http://localhost:3000/books";
+        let url = "https://backend-bookcircle-klee.onrender.com/books";
         if (searchTerm) {
           url += `?search=${encodeURIComponent(searchTerm)}`;
         }
